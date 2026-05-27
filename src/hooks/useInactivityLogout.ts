@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useAuth } from './useAuth';
 
-const INACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+const INACTIVITY_TIMEOUT = 1 * 60 * 1000; // 1 minute
 
 export const useInactivityLogout = () => {
   const { logout, isAuthenticated } = useAuth();
@@ -23,7 +23,7 @@ export const useInactivityLogout = () => {
 
   useEffect(() => {
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-    
+
     if (isAuthenticated) {
       resetTimer();
       events.forEach((event) => {

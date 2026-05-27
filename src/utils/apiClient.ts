@@ -96,8 +96,8 @@ class ApiClient {
     window.location.href = '/login';
   }
 
-  async get<T>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-    const response = await this.client.get<ApiResponse<T>>(url, config);
+  async get<T, R = ApiResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
+    const response = await this.client.get<R>(url, config);
     return response.data;
   }
 

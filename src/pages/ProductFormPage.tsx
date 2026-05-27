@@ -1,9 +1,18 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import {
+  Button,
+  Card,
+  CardContent,
+  Grid,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
 import { productService } from '@/services/productService';
 import { CreateProductRequest, UpdateProductRequest } from '@/types';
-import { isValidPrice, isValidQuantity, getErrorMessage } from '@/utils/validation';
+import { getErrorMessage, isValidPrice, isValidQuantity } from '@/utils/validation';
 
 const emptyForm = {
   name: '',
@@ -16,14 +25,14 @@ const emptyForm = {
 export const ProductFormPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const [form, setForm] = useState<CreateProductRequest & { description: string }>({
-    ...emptyForm,
-  });
+  const [form, setForm] = useState<CreateProductRequest & { description: string }>(emptyForm);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      return;
+    }
 
     const loadProduct = async () => {
       setLoading(true);
@@ -52,41 +61,36 @@ export const ProductFormPage = () => {
     event.preventDefault();
 
     if (!form.name.trim()) {
-      return toast.error('Product name is required.');
+      toast.error('Product name is required.');
+      return;
     }
 
     if (!form.sku.trim()) {
-      return toast.error('Product SKU is required.');
+      toast.error('Product SKU is required.');
+      return;
     }
 
     if (!isValidPrice(form.price)) {
-      return toast.error('Enter a valid price greater than 0.');
+      toast.error('Enter a valid price greater than 0.');
+      return;
     }
 
     if (!isValidQuantity(form.quantity)) {
-      return toast.error('Quantity must be a non-negative integer.');
+      toast.error('Quantity must be a non-negative integer.');
+      return;
     }
 
     setSaving(true);
 
     try {
       if (id) {
-        const payload: UpdateProductRequest = {
-          name: form.name,
-          description: form.description,
-          price: form.price,
-          quantity: form.quantity,
-          sku: form.sku,
-        };
+        const payload: UpdateProductRequest = { ...form };
         await productService.updateProduct(id, payload);
         toast.success('Product updated successfully.');
       } else {
         const payload: CreateProductRequest = {
-          name: form.name,
+          ...form,
           description: form.description || undefined,
-          price: form.price,
-          quantity: form.quantity,
-          sku: form.sku,
         };
         await productService.createProduct(payload);
         toast.success('Product created successfully.');
@@ -100,118 +104,101 @@ export const ProductFormPage = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold text-slate-900">
-              {id ? 'Edit product' : 'Create a new product'}
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Maintain accurate inventory and keep product details up to date.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => navigate('/products')}
-            className="inline-flex rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300"
+    <Stack spacing={3}>
+      <Card>
+        <CardContent>
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            justifyContent="space-between"
+            alignItems={{ xs: 'stretch', md: 'center' }}
+            spacing={2}
           >
-            Back to products
-          </button>
-        </div>
-      </div>
+            <Stack spacing={0.5}>
+              <Typography variant="h5">{id ? 'Edit product' : 'Create product'}</Typography>
+              <Typography color="text.secondary">
+                Keep inventory records precise and search-ready.
+              </Typography>
+            </Stack>
+            <Button variant="outlined" onClick={() => navigate('/products')}>
+              Back to products
+            </Button>
+          </Stack>
+        </CardContent>
+      </Card>
 
-      {loading ? (
-        <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
-          Loading product…
-        </div>
-      ) : (
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div className="grid gap-6 lg:grid-cols-2">
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700">Product name</span>
-                <input
-                  value={form.name}
-                  onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
-                  placeholder="Redis Cache Module"
-                />
-              </label>
+      <Card>
+        <CardContent>
+          {loading ? (
+            <Typography color="text.secondary">Loading product...</Typography>
+          ) : (
+            <Stack component="form" spacing={3} onSubmit={handleSubmit}>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Product name"
+                    value={form.name}
+                    onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="SKU"
+                    value={form.sku}
+                    onChange={(event) => setForm((prev) => ({ ...prev, sku: event.target.value }))}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    multiline
+                    minRows={5}
+                    label="Description"
+                    value={form.description}
+                    onChange={(event) =>
+                      setForm((prev) => ({ ...prev, description: event.target.value }))
+                    }
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Price"
+                    inputProps={{ min: 0, step: 0.01 }}
+                    value={form.price}
+                    onChange={(event) =>
+                      setForm((prev) => ({ ...prev, price: Number(event.target.value) }))
+                    }
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Quantity"
+                    inputProps={{ min: 0 }}
+                    value={form.quantity}
+                    onChange={(event) =>
+                      setForm((prev) => ({ ...prev, quantity: Number(event.target.value) }))
+                    }
+                  />
+                </Grid>
+              </Grid>
 
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700">SKU</span>
-                <input
-                  value={form.sku}
-                  onChange={(event) => setForm((prev) => ({ ...prev, sku: event.target.value }))}
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
-                  placeholder="REDIS-001"
-                />
-              </label>
-            </div>
-
-            <label className="block">
-              <span className="text-sm font-medium text-slate-700">Description</span>
-              <textarea
-                value={form.description}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, description: event.target.value }))
-                }
-                className="mt-2 min-h-[140px] w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
-                placeholder="Add optional product details here..."
-              />
-            </label>
-
-            <div className="grid gap-6 lg:grid-cols-3">
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700">Price</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={form.price}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, price: Number(event.target.value) }))
-                  }
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
-                  placeholder="0.00"
-                />
-              </label>
-
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700">Quantity</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={form.quantity}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, quantity: Number(event.target.value) }))
-                  }
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
-                  placeholder="0"
-                />
-              </label>
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-              <button
-                type="button"
-                onClick={() => navigate('/products')}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="rounded-2xl bg-primary-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {saving ? 'Saving…' : id ? 'Update product' : 'Create product'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-    </div>
+              <Stack direction="row" spacing={1.5} justifyContent="flex-end">
+                <Button variant="outlined" onClick={() => navigate('/products')}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="contained" disabled={saving}>
+                  {saving ? 'Saving...' : id ? 'Update product' : 'Create product'}
+                </Button>
+              </Stack>
+            </Stack>
+          )}
+        </CardContent>
+      </Card>
+    </Stack>
   );
 };

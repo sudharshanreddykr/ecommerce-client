@@ -1,112 +1,183 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { Bars3Icon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 import { useState } from 'react';
-
-const navItems = [
-  { label: 'Dashboard', href: '/' },
-  { label: 'Products', href: '/products' },
-  { label: 'Profile', href: '/profile' },
-];
+import {
+  AppBar,
+  Avatar,
+  Badge,
+  Box,
+  Button,
+  Chip,
+  Container,
+  Drawer,
+  IconButton,
+  List,
+  ListItemButton,
+  ListItemText,
+  Stack,
+  Toolbar,
+  Typography,
+} from '@mui/material';
+import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
+import Inventory2RoundedIcon from '@mui/icons-material/Inventory2Rounded';
+import ShoppingBagRoundedIcon from '@mui/icons-material/ShoppingBagRounded';
+import ShoppingCartRoundedIcon from '@mui/icons-material/ShoppingCartRounded';
+import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
+import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
+import AddBusinessRoundedIcon from '@mui/icons-material/AddBusinessRounded';
+import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import { useAppSelector } from '@/store/hooks';
 
 export const AppShell = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const cartCount = useAppSelector((state) => state.cart.items.reduce((sum, item) => sum + item.quantity, 0));
+
+  const navItems =
+    user?.role === 'admin'
+      ? [
+          { label: 'Overview', href: '/dashboard', icon: <DashboardRoundedIcon fontSize="small" /> },
+          { label: 'Products', href: '/products', icon: <Inventory2RoundedIcon fontSize="small" /> },
+          { label: 'Add Product', href: '/products/new', icon: <AddBusinessRoundedIcon fontSize="small" /> },
+          { label: 'Profile', href: '/profile', icon: <PersonRoundedIcon fontSize="small" /> },
+        ]
+      : [
+          { label: 'Shop', href: '/shop', icon: <ShoppingBagRoundedIcon fontSize="small" /> },
+          { label: 'Cart', href: '/cart', icon: <ShoppingCartRoundedIcon fontSize="small" /> },
+          { label: 'Orders', href: '/orders', icon: <ReceiptLongRoundedIcon fontSize="small" /> },
+          { label: 'Profile', href: '/profile', icon: <PersonRoundedIcon fontSize="small" /> },
+        ];
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
+  const currentPage = navItems.find((item) => location.pathname.startsWith(item.href));
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white shadow-sm">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-slate-900">
-              <Bars3Icon className="h-6 w-6 text-primary-600" />
-              <span className="font-semibold text-lg">Ecommerce</span>
-            </div>
-            <nav className="hidden items-center gap-3 md:flex">
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background:
+          'radial-gradient(circle at top left, rgba(94,234,212,0.16), transparent 22%), radial-gradient(circle at top right, rgba(249,115,22,0.14), transparent 20%), #f4f6fb',
+      }}
+    >
+      <AppBar
+        position="sticky"
+        color="transparent"
+        elevation={0}
+        sx={{ backdropFilter: 'blur(14px)', borderBottom: '1px solid rgba(148,163,184,0.16)' }}
+      >
+        <Toolbar sx={{ minHeight: 80 }}>
+          <Container maxWidth="xl" sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <IconButton onClick={() => setMenuOpen(true)} sx={{ display: { md: 'none' } }}>
+              <MenuRoundedIcon />
+            </IconButton>
+            <Stack direction="row" alignItems="center" spacing={1.5} sx={{ flexGrow: 1 }}>
+              <Avatar sx={{ bgcolor: 'primary.main', width: 42, height: 42 }}>
+                {user?.role === 'admin' ? <Inventory2RoundedIcon /> : <ShoppingBagRoundedIcon />}
+              </Avatar>
+              <Box>
+                <Typography variant="h6" fontWeight={700}>
+                  Commerce Hub
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {user?.role === 'admin' ? 'Operations control center' : 'Customer storefront'}
+                </Typography>
+              </Box>
+            </Stack>
+
+            <Stack direction="row" spacing={1} sx={{ display: { xs: 'none', md: 'flex' } }}>
               {navItems.map((item) => (
-                <NavLink
+                <Button
                   key={item.href}
+                  component={NavLink}
                   to={item.href}
-                  className={({ isActive }) =>
-                    `rounded-md px-3 py-2 text-sm font-medium transition ${
-                      isActive ? 'bg-primary-600 text-white' : 'text-slate-700 hover:bg-slate-100'
-                    }`
-                  }
+                  startIcon={item.icon}
+                  color={location.pathname.startsWith(item.href) ? 'primary' : 'inherit'}
+                  variant={location.pathname.startsWith(item.href) ? 'contained' : 'text'}
+                  sx={{ color: location.pathname.startsWith(item.href) ? 'white' : 'text.primary' }}
                 >
                   {item.label}
-                </NavLink>
+                </Button>
               ))}
-            </nav>
-          </div>
+            </Stack>
 
-          <div className="flex items-center gap-3">
-            <div className="hidden flex-col text-right sm:flex">
-              <span className="text-sm font-medium text-slate-900">
-                {user?.firstName} {user?.lastName}
-              </span>
-              <span className="text-xs text-slate-500">{user?.role.toUpperCase()}</span>
-            </div>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="inline-flex items-center gap-2 rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-            >
-              <ArrowRightOnRectangleIcon className="h-4 w-4" />
-              Logout
-            </button>
-          </div>
-        </div>
-      </header>
+            {user?.role === 'user' && (
+              <IconButton color="primary" onClick={() => navigate('/cart')}>
+                <Badge badgeContent={cartCount} color="secondary">
+                  <ShoppingCartRoundedIcon />
+                </Badge>
+              </IconButton>
+            )}
 
-      <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-6 flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900">
-              Welcome back, {user?.firstName}
-            </h1>
-            <p className="mt-1 text-sm text-slate-500">
-              Manage products, inventory and your profile from one place.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setMenuOpen((current) => !current)}
-            className="inline-flex items-center gap-2 rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700 md:hidden"
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <Box sx={{ textAlign: 'right', display: { xs: 'none', sm: 'block' } }}>
+                <Typography variant="body2" fontWeight={700}>
+                  {user?.firstName} {user?.lastName}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {user?.role === 'admin' ? 'Administrator' : 'Customer'}
+                </Typography>
+              </Box>
+              <Button onClick={handleLogout} variant="outlined" startIcon={<LogoutRoundedIcon />}>
+                Logout
+              </Button>
+            </Stack>
+          </Container>
+        </Toolbar>
+      </AppBar>
+
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Stack spacing={3}>
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            justifyContent="space-between"
+            alignItems={{ xs: 'flex-start', md: 'center' }}
+            spacing={2}
           >
-            <Bars3Icon className="h-5 w-5" />
-            Menu
-          </button>
-        </div>
+            <Box>
+              <Typography variant="h4">
+                {currentPage?.label || (user?.role === 'admin' ? 'Workspace' : 'Storefront')}
+              </Typography>
+              <Typography color="text.secondary">
+                {user?.role === 'admin'
+                  ? 'Manage inventory, monitor stock, and keep catalog data current.'
+                  : 'Search products, complete purchases, and track every order from one account.'}
+              </Typography>
+            </Box>
+            <Chip
+              label={user?.role === 'admin' ? 'Admin mode' : 'Customer mode'}
+              color={user?.role === 'admin' ? 'primary' : 'secondary'}
+            />
+          </Stack>
 
-        {menuOpen ? (
-          <div className="mb-6 rounded-xl bg-white p-4 shadow-sm md:hidden">
-            <div className="flex flex-col gap-2">
-              {navItems.map((item) => (
-                <NavLink
-                  key={item.href}
-                  to={item.href}
-                  onClick={() => setMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `rounded-md px-3 py-2 text-sm font-medium transition ${
-                      isActive ? 'bg-primary-600 text-white' : 'text-slate-700 hover:bg-slate-100'
-                    }`
-                  }
-                >
-                  {item.label}
-                </NavLink>
-              ))}
-            </div>
-          </div>
-        ) : null}
+          <Outlet />
+        </Stack>
+      </Container>
 
-        <Outlet />
-      </main>
-    </div>
+      <Drawer anchor="left" open={menuOpen} onClose={() => setMenuOpen(false)}>
+        <Box sx={{ width: 300, p: 2 }}>
+          <List>
+            {navItems.map((item) => (
+              <ListItemButton
+                key={item.href}
+                component={NavLink}
+                to={item.href}
+                onClick={() => setMenuOpen(false)}
+                selected={location.pathname.startsWith(item.href)}
+                sx={{ borderRadius: 3, mb: 1 }}
+              >
+                <ListItemText primary={item.label} />
+              </ListItemButton>
+            ))}
+          </List>
+        </Box>
+      </Drawer>
+    </Box>
   );
 };

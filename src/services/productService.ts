@@ -1,5 +1,5 @@
 import { apiClient } from '@/utils/apiClient';
-import { CreateProductRequest, PaginatedResponse, Product, UpdateProductRequest } from '@/types';
+import { CreateProductRequest, PaginatedApiResponse, Product, UpdateProductRequest } from '@/types';
 
 export const productService = {
   fetchProducts(page = 1, limit = 10, search = '') {
@@ -7,7 +7,7 @@ export const productService = {
     params.set('page', String(page));
     params.set('limit', String(limit));
     if (search) params.set('search', search);
-    return apiClient.get<PaginatedResponse<Product>>(`/products?${params.toString()}`);
+    return apiClient.get<Product[], PaginatedApiResponse<Product>>(`/products?${params.toString()}`);
   },
 
   fetchMyProducts() {

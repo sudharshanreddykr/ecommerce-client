@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import { useAppDispatch } from '@/store/hooks';
 import { login } from '@/store/slices/authSlice';
 import { apiClient } from '@/utils/apiClient';
 import { authService } from '@/services/authService';
 import toast from 'react-hot-toast';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CircularProgress,
+  Stack,
+  Typography,
+} from '@mui/material';
 
-/**
- * OAuth Callback Handler
- * Processes authentication tokens from GitHub and Google OAuth redirects.
- * Parses token from query params, validates it, and logs the user in.
- */
 export const AuthCallbackHandler = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -32,15 +36,12 @@ export const AuthCallbackHandler = () => {
       }
 
       if (!accessToken) {
-        const missingTokenMessage = 'Missing authentication tokens.';
-        toast.error(missingTokenMessage);
-        setErrorMessage(missingTokenMessage);
+        setErrorMessage('Missing authentication tokens.');
         setLoading(false);
         return;
       }
 
       try {
-        // refreshToken is already set as an HTTP-only cookie by the backend redirect
         apiClient.setAccessToken(accessToken);
         const profileResponse = await authService.getProfile();
         const user = profileResponse.data;
@@ -50,10 +51,10 @@ export const AuthCallbackHandler = () => {
         }
 
         dispatch(login({ accessToken, user }));
-        toast.success('Logged in successfully.');
         navigate('/');
       } catch (fetchError) {
         toast.error('Unable to complete social login.');
+        setErrorMessage('Unable to complete social login.');
         setLoading(false);
       }
     };
@@ -62,41 +63,45 @@ export const AuthCallbackHandler = () => {
   }, [dispatch, location.search, navigate]);
 
   return (
-    <div className="grid min-h-screen place-items-center bg-slate-50 px-4 py-8">
-      <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-8 shadow-lg shadow-slate-200/40 text-center">
-        {loading ? (
-          <>
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary-600">
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'grid',
+        placeItems: 'center',
+        px: 2,
+        background: 'linear-gradient(180deg, #f8fafc 0%, #ecfeff 100%)',
+      }}
+    >
+      <Card sx={{ width: '100%', maxWidth: 520 }}>
+        <CardContent sx={{ p: 4 }}>
+          <Stack spacing={2} alignItems="flex-start">
+            <Typography variant="overline" color="primary.main">
               Social login
-            </p>
-            <h1 className="mt-3 text-3xl font-semibold text-slate-900">Completing sign in…</h1>
-            <p className="mt-2 text-sm text-slate-500">
-              Please wait while we finish signing you in.
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary-600">
-              Social login
-            </p>
-            <h1 className="mt-3 text-3xl font-semibold text-slate-900">Unable to complete login</h1>
-            <p className="mt-2 text-sm text-slate-500">
-              {errorMessage || 'Please try again or sign in with your email and password.'}
-            </p>
-            <div className="mt-6">
-              <Link
-                to="/login"
-                className="rounded-2xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white hover:bg-primary-700"
-              >
-                Back to login
-              </Link>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+            </Typography>
+            {loading ? (
+              <>
+                <CircularProgress size={28} />
+                <Typography variant="h5">Completing sign in</Typography>
+                <Typography color="text.secondary">
+                  Please wait while we complete authentication.
+                </Typography>
+              </>
+            ) : (
+              <>
+                <Typography variant="h5">Unable to complete login</Typography>
+                <Typography color="text.secondary">
+                  {errorMessage || 'Please try again or use email and password sign in.'}
+                </Typography>
+                <Button component={RouterLink} to="/login" variant="contained">
+                  Back to login
+                </Button>
+              </>
+            )}
+          </Stack>
+        </CardContent>
+      </Card>
+    </Box>
   );
 };
 
-// Backward compatibility export
 export const AuthCallbackPage = AuthCallbackHandler;

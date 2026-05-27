@@ -8,6 +8,10 @@ export interface ApiResponse<T> {
   errors?: ApiError[];
 }
 
+export interface PaginatedApiResponse<T> extends ApiResponse<T[]> {
+  pagination?: PaginationMeta;
+}
+
 export interface ApiError {
   field?: string;
   message: string;
@@ -31,6 +35,13 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
+  phoneNumber?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postalCode?: string | null;
+  country?: string | null;
   role: 'admin' | 'user';
   isActive: boolean;
   createdAt: string;
@@ -52,6 +63,13 @@ export interface RegisterRequest {
   password: string;
   firstName: string;
   lastName: string;
+  phoneNumber?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
 }
 
 export interface UpdateUserRequest {
@@ -59,6 +77,13 @@ export interface UpdateUserRequest {
   firstName?: string;
   lastName?: string;
   password?: string;
+  phoneNumber?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
 }
 
 // Product types
@@ -68,6 +93,10 @@ export interface Product {
   description: string | null;
   price: number;
   quantity: number;
+  availableQuantity?: number;
+  heldQuantity?: number;
+  soldQuantity?: number;
+  isOutOfStock?: boolean;
   sku: string;
   userId: string;
   creator?: {
@@ -110,4 +139,73 @@ export interface UiState {
   isLoading: boolean;
   error: string | null;
   success: string | null;
+}
+
+export interface CheckoutDraft {
+  email: string;
+  phoneNumber: string;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  deliveryInstructions: string;
+  paymentMethod: 'dummy-card' | 'cash-on-delivery';
+}
+
+export interface OrderLineItem {
+  productId: string;
+  name: string;
+  sku: string;
+  price: number;
+  quantity: number;
+}
+
+export interface Order {
+  id: string;
+  userId: string;
+  status: 'processing' | 'paid' | 'shipped';
+  placedAt: string;
+  total: number;
+  itemCount: number;
+  items: OrderLineItem[];
+  shippingAddress: Omit<CheckoutDraft, 'paymentMethod'>;
+  paymentMethod: CheckoutDraft['paymentMethod'];
+}
+
+export interface SearchSuggestion {
+  label: string;
+  query: string;
+  matchType: 'name' | 'sku' | 'description';
+  productId: string;
+}
+
+export interface CartItem {
+  product: Product;
+  quantity: number;
+}
+
+export interface CartEvent {
+  id: string;
+  userId: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  createdAt: string;
+}
+
+export interface CheckoutHoldItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  baseQuantity: number;
+}
+
+export interface CheckoutHold {
+  id: string;
+  userId: string;
+  expiresAt: string;
+  createdAt: string;
+  items: CheckoutHoldItem[];
 }

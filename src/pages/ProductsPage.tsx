@@ -1,30 +1,54 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import {
+  Alert,
+  Button,
+  Card,
+  CardContent,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  InputAdornment,
+  MenuItem,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TablePagination,
+  TableRow,
+  TextField,
+  Typography,
+} from '@mui/material';
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import { productService } from '@/services/productService';
 import { Product } from '@/types';
-import { formatCurrency } from '@/utils/validation';
+import { formatCurrency, formatDate } from '@/utils/validation';
 
 const pageSizes = [10, 20, 50];
 
 export const ProductsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0);
   const [limit, setLimit] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
 
   const loadProducts = async () => {
     setLoading(true);
     try {
-      const response = await productService.fetchProducts(page, limit, search);
-
-      // response.data is Product[]
+      const response = await productService.fetchProducts(page + 1, limit, search);
       setProducts(response.data ?? []);
-
-      // response.pagination.pages is total number of pages
-      setTotalPages(response.pagination?.pages ?? 1);
+      setTotal(response.pagination?.total ?? 0);
     } catch (error) {
       toast.error('Failed to load products.');
     } finally {
@@ -37,18 +61,25 @@ export const ProductsPage = () => {
   }, [page, limit]);
 
   const handleSearch = async () => {
-    setPage(1);
-    await loadProducts();
+    setPage(0);
+    try {
+      const response = await productService.fetchProducts(1, limit, search);
+      setProducts(response.data ?? []);
+      setTotal(response.pagination?.total ?? 0);
+    } catch (error) {
+      toast.error('Failed to load products.');
+    }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this product permanently?')) {
+  const handleDelete = async () => {
+    if (!deleteTarget) {
       return;
     }
 
     try {
-      await productService.deleteProduct(id);
+      await productService.deleteProduct(deleteTarget.id);
       toast.success('Product deleted successfully.');
+      setDeleteTarget(null);
       loadProducts();
     } catch (error) {
       toast.error('Unable to delete product.');
@@ -56,143 +87,179 @@ export const ProductsPage = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold text-slate-900">Products</h2>
-          <p className="mt-1 text-sm text-slate-500">Browse and manage items in your inventory.</p>
-        </div>
-        <Link
-          to="/products/new"
-          className="inline-flex items-center justify-center rounded-2xl bg-primary-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary-700"
-        >
-          Add product
-        </Link>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-[1fr_240px]">
-        <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <label className="flex w-full items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700 focus-within:ring-2 focus-within:ring-primary-100 sm:w-72">
-              <span className="text-slate-400">Search</span>
-              <input
-                className="w-full bg-transparent text-sm text-slate-900 outline-none"
-                placeholder="Product name or SKU"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </label>
-            <button
-              type="button"
-              onClick={handleSearch}
-              className="inline-flex rounded-2xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-700"
+    <Stack spacing={3}>
+      <Card>
+        <CardContent>
+          <Stack
+            direction={{ xs: 'column', lg: 'row' }}
+            justifyContent="space-between"
+            alignItems={{ xs: 'stretch', lg: 'center' }}
+            spacing={2}
+          >
+            <Stack spacing={0.5}>
+              <Typography variant="h5">Product administration</Typography>
+              <Typography color="text.secondary">
+                Manage catalog data, keep stock accurate, and review the latest updates.
+              </Typography>
+            </Stack>
+            <Button
+              component={RouterLink}
+              to="/products/new"
+              variant="contained"
+              startIcon={<AddRoundedIcon />}
             >
-              Search
-            </button>
-          </div>
-        </div>
+              Add product
+            </Button>
+          </Stack>
+        </CardContent>
+      </Card>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-          <label className="flex flex-col gap-2 text-sm text-slate-700">
-            Results per page
-            <select
+      <Card>
+        <CardContent>
+          <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2}>
+            <TextField
+              fullWidth
+              label="Search products"
+              placeholder="Name or SKU"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              onKeyDown={(event) => event.key === 'Enter' && handleSearch()}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchRoundedIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <TextField
+              select
+              label="Rows"
               value={limit}
-              onChange={(event) => setLimit(Number(event.target.value))}
-              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none"
+              onChange={(event) => {
+                setLimit(Number(event.target.value));
+                setPage(0);
+              }}
+              sx={{ width: { xs: '100%', lg: 140 } }}
             >
               {pageSizes.map((size) => (
-                <option key={size} value={size}>
+                <MenuItem key={size} value={size}>
                   {size}
-                </option>
+                </MenuItem>
               ))}
-            </select>
-          </label>
-        </div>
-      </div>
+            </TextField>
+            <Button variant="outlined" onClick={handleSearch}>
+              Search
+            </Button>
+          </Stack>
+        </CardContent>
+      </Card>
 
-      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-slate-200 text-left text-sm text-slate-700">
-          <thead className="bg-slate-50 text-xs uppercase tracking-[0.16em] text-slate-500">
-            <tr>
-              <th className="px-4 py-4">Name</th>
-              <th className="px-4 py-4">SKU</th>
-              <th className="px-4 py-4">Price</th>
-              <th className="px-4 py-4">Quantity</th>
-              <th className="px-4 py-4">Owner</th>
-              <th className="px-4 py-4">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200 bg-white">
-            {loading ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-slate-500">
-                  Loading products…
-                </td>
-              </tr>
-            ) : products.length > 0 ? (
-              products.map((product) => (
-                <tr key={product.id}>
-                  <td className="px-4 py-4 font-medium text-slate-900">{product.name}</td>
-                  <td className="px-4 py-4 text-slate-500">{product.sku}</td>
-                  <td className="px-4 py-4 text-slate-700">
-                    {formatCurrency(Number(product.price))}
-                  </td>
-                  <td className="px-4 py-4 text-slate-700">{product.quantity}</td>
-                  <td className="px-4 py-4 text-slate-500">
-                    {product.creator?.firstName ?? 'You'}
-                  </td>
-                  <td className="px-4 py-4 space-x-2">
-                    <Link
-                      to={`/products/${product.id}/edit`}
-                      className="rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-200"
-                    >
-                      Edit
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(product.id)}
-                      className="rounded-full bg-rose-100 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-200"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-slate-500">
-                  No products match your criteria.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Card>
+        <CardContent sx={{ p: 0 }}>
+          {products.length === 0 && !loading ? (
+            <Alert severity="info" sx={{ m: 3 }}>
+              No products match your current filters.
+            </Alert>
+          ) : (
+            <TableContainer>
+              <Table sx={{ tableLayout: 'fixed' }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Name</TableCell>
+                    <TableCell>SKU</TableCell>
+                    <TableCell align="right">Price</TableCell>
+                    <TableCell align="right">Qty</TableCell>
+                    <TableCell>Owner</TableCell>
+                    <TableCell>Updated</TableCell>
+                    <TableCell align="right">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                        Loading products...
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    products.map((product) => (
+                      <TableRow key={product.id} hover>
+                        <TableCell sx={{ maxWidth: 220 }}>
+                          <Typography fontWeight={600} noWrap>
+                            {product.name}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>{product.sku}</TableCell>
+                        <TableCell align="right">{formatCurrency(product.price)}</TableCell>
+                        <TableCell align="right">{product.quantity}</TableCell>
+                        <TableCell sx={{ maxWidth: 160 }}>
+                          <Typography variant="body2" noWrap color="text.secondary">
+                            {product.creator
+                              ? `${product.creator.firstName} ${product.creator.lastName}`
+                              : 'You'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>{formatDate(product.updatedAt)}</TableCell>
+                        <TableCell align="right">
+                          <Stack direction="row" spacing={1} justifyContent="flex-end">
+                            <Button
+                              component={RouterLink}
+                              to={`/products/${product.id}/edit`}
+                              size="small"
+                              startIcon={<EditOutlinedIcon />}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              size="small"
+                              color="error"
+                              startIcon={<DeleteOutlineRoundedIcon />}
+                              onClick={() => setDeleteTarget(product)}
+                            >
+                              Delete
+                            </Button>
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
 
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <p className="text-sm text-slate-500">
-          Page {page} of {totalPages}
-        </p>
+          <TablePagination
+            component="div"
+            count={total}
+            page={page}
+            onPageChange={(_, nextPage) => setPage(nextPage)}
+            rowsPerPage={limit}
+            rowsPerPageOptions={pageSizes}
+            onRowsPerPageChange={(event) => {
+              setLimit(Number(event.target.value));
+              setPage(0);
+            }}
+          />
+        </CardContent>
+      </Card>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setPage((page) => Math.max(1, page - 1))}
-            disabled={page <= 1}
-            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            Previous
-          </button>
-          <button
-            type="button"
-            onClick={() => setPage((page) => Math.min(totalPages, page + 1))}
-            disabled={page >= totalPages}
-            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            Next
-          </button>
-        </div>
-      </div>
-    </div>
+      <Dialog open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)}>
+        <DialogTitle>Delete product</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {deleteTarget
+              ? `Delete ${deleteTarget.name} permanently? This action cannot be undone.`
+              : ''}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={handleDelete}>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Stack>
   );
 };
